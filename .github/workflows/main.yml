@@ -20,26 +20,25 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build and Test with JaCoCo
+      - name: Run Tests and JaCoCo Coverage
+        working-directory: ./SmokeGameBack
         run: mvn clean verify
 
-      - name: Security Scan (Snyk)
+      - name: Snyk Security Scan
         uses: snyk/actions/maven@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --severity-threshold=high
+          args: --severity-threshold=high ./SmokeGameBack
 
       - name: Build Docker Image
-        run: |
-          docker build -t smokegames-back ./SmokeGameBack
+        run: docker build -t smokegames-back ./SmokeGameBack
 
       - name: Deploy with Docker Compose
-        run: |
-          docker-compose up -d
+        run: docker-compose up -d
 
-      - name: Upload JaCoCo Report
+      - name: Upload JaCoCo Report Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: reporte-cobertura
+          name: reporte-cobertura-jacoco
           path: SmokeGameBack/target/site/jacoco/
