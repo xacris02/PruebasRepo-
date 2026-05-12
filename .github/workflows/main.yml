@@ -13,16 +13,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Make Maven Wrapper executable
-        working-directory: ./SmokeGameBack
-        run: chmod +x mvnw
-
+      
+      - name: Remove broken Maven Wrapper
+        run: rm -f SmokeGameBack/mvnw SmokeGameBack/mvnw.cmd
+        
       - name: Snyk Security Scan
         uses: snyk/actions/maven@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --severity-threshold=high ./SmokeGameBack
+          args: --file=SmokeGameBack/pom.xml --severity-threshold=high
 
   build-and-test:
     name: Run Tests with JaCoCo
@@ -38,13 +38,9 @@ jobs:
           distribution: 'temurin'
           cache: maven
           
-      - name: Make Maven Wrapper executable
-        working-directory: ./SmokeGameBack
-        run: chmod +x mvnw
-
       - name: Build and Test with JaCoCo
         working-directory: ./SmokeGameBack
-        run: ./mvnw clean verify
+        run: mvn clean verify
 
       - name: Upload JaCoCo Report
         uses: actions/upload-artifact@v4
