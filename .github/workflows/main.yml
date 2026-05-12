@@ -20,25 +20,42 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      # Corregido: Uso de mvnw y permisos de ejecución
       - name: Run Tests and JaCoCo Coverage
-        working-directory: ./SmokeGameBack
-        run: mvn clean verify
+        run: |
+          chmod +x mvnw
+          ./mvnw clean verify
 
+      # Escaneo de seguridad con Snyk (IE3)
       - name: Snyk Security Scan
         uses: snyk/actions/maven@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --severity-threshold=high ./SmokeGameBack
+          args: --severity-threshold=high .
 
+      # Empaquetado del JAR para el artefacto
+      - name: Package Application
+        run: ./mvnw package -DskipTests
+
+      # Construcción de Imagen Docker (IE1)
       - name: Build Docker Image
-        run: docker build -t smokegames-back ./SmokeGameBack
+        run: docker build -t smokegames-back .
 
+      # Orquestación con Docker Compose (IE5)
       - name: Deploy with Docker Compose
         run: docker-compose up -d
 
+      # Subida de artefactos: Reporte de cobertura (IE2)
       - name: Upload JaCoCo Report Artifact
         uses: actions/upload-artifact@v4
         with:
           name: reporte-cobertura-jacoco
-          path: SmokeGameBack/target/site/jacoco/
+          path: target/site/jacoco/
+
+      # Subida de artefactos: Archivo JAR (IE4)
+      - name: Upload JAR Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: target/*.jar
