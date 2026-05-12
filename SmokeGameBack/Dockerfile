@@ -1,19 +1,14 @@
-# Etapa 1: Dependencias y Compilación
-FROM eclipse-temurin:17-jdk AS compile
+# Etapa 1: Dependencias y Compilación (Usamos la imagen oficial de Maven)
+FROM maven:3.9.5-eclipse-temurin-17 AS compile
 WORKDIR /app
 
-# Copiamos los archivos de Maven
-COPY mvnw .
-COPY .mvn .mvn
+# Copiamos solo el pom.xml y descargamos las dependencias
 COPY pom.xml .
+RUN mvn dependency:go-offline -B
 
-# Damos permisos al wrapper y descargamos dependencias
-RUN chmod +x mvnw
-RUN ./mvnw dependency:go-offline -B
-
-# Copiamos el código fuente y compilamos el JAR
+# Copiamos el código fuente y compilamos el proyecto
 COPY src ./src
-RUN ./mvnw clean package -DskipTests
+RUN mvn clean package -DskipTests
 
 # Etapa 2: Producción (Imagen final súper liviana)
 FROM eclipse-temurin:17-jre AS prod
