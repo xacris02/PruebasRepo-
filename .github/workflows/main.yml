@@ -7,35 +7,21 @@ on:
     branches: [ "main" ]
 
 jobs:
-  security-scan:
-    name: Snyk Security Scan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Remove broken Maven Wrapper
-        run: rm -f SmokeGameBack/mvnw SmokeGameBack/mvnw.cmd
-      - name: Snyk Security Scan
-        uses: snyk/actions/maven@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --file=SmokeGameBack/pom.xml --severity-threshold=high
-
+ # JOB 1: Construcción, Pruebas y Trazabilidad
   build-and-test:
     name: Run Tests with JaCoCo
     needs: security-scan
     runs-on: ubuntu-latest
     
+    # Base de datos temporal orquestada para que los tests pasen
     services:
       mysql:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: rootpassword
           MYSQL_DATABASE: smoke_game_db
-        # Cambiamos al puerto 3307 para evitar conflictos con el Ubuntu de GitHub
         ports:
           - 3307:3306
-        # Aumentamos los reintentos a 10 para darle tiempo de sobra a MySQL para iniciar
         options: >-
           --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -prootpassword"
           --health-interval=10s
@@ -54,7 +40,6 @@ jobs:
           
       - name: Build and Test with JaCoCo
         working-directory: ./SmokeGameBack
-        # Actualizamos la URL para que apunte al nuevo puerto 3307
         env:
           SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3307/smoke_game_db?useSSL=false&serverTimezone=UTC
           SPRING_DATASOURCE_USERNAME: root
@@ -67,13 +52,43 @@ jobs:
           name: jacoco-report
           path: SmokeGameBack/target/site/jacoco/
 
+      - name: Upload JAR Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: SmokeGameBack/target/*.jar
+          
+  # JOB 2: Análisis de Seguridad con Snyk
+  security-scan:
+    name: Snyk Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove broken Maven Wrapper
+        run: rm -f SmokeGameBack/mvnw SmokeGameBack/mvnw.cmd
+      - name: Snyk Security Scan
+        uses: snyk/actions/maven@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --file=SmokeGameBack/pom.xml --severity-threshold=high
+
+ 
+
+  # JOB 3: Creación de Imagen y Despliegue con Docker
   docker-deploy:
     name: Build & Deploy Docker
     needs: build-and-test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - name: Build Docker Image
-        run: docker build -t smokegames-back ./SmokeGameBack
+        # Aquí está la corrección clave de las rutas
+        working-directory: ./SmokeGameBack
+        run: docker build -t smokegames-back .
+        
       - name: Deploy with Docker Compose
+        # Y aquí también
+        working-directory: ./SmokeGameBack
         run: docker-compose up -d
