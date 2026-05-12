@@ -91,4 +91,4 @@ jobs:
       - name: Deploy with Docker Compose
         # Y aquí también
         working-directory: ./SmokeGameBack
-        run: docker-compose up -d
+        run: docker compose up -d
