@@ -1,9 +1,11 @@
+version: '3.8'
+
 services:
   mysql-db:
     image: mysql:8.0
     container_name: mysql_smokegames
     environment:
-      MYSQL_ROOT_PASSWORD: root_password # Cambia esto si lo prefieres
+      MYSQL_ROOT_PASSWORD: root_password
       MYSQL_DATABASE: smokegames_bd
     ports:
       - "3306:3306"
@@ -13,7 +15,7 @@ services:
       retries: 10
 
   api-service:
-    build: ./SmokeGameBack
+    build: .
     container_name: smokegames_backend
     ports:
       - "8080:8080"
@@ -24,3 +26,13 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/smokegames_bd?useSSL=false&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root_password
+      
+    # IE3: Ajuste de parámetros de escalabilidad y seguridad (Requisito de la rúbrica)
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.5"
