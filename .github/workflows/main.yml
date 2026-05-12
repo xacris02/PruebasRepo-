@@ -7,55 +7,60 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-and-test:
+  security-scan:
+    name: Snyk Security Scan
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      
+      - name: Make Maven Wrapper executable
+        working-directory: ./SmokeGameBack
+        run: chmod +x mvnw
 
+      - name: Snyk Security Scan
+        uses: snyk/actions/maven@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high ./SmokeGameBack
+
+  build-and-test:
+    name: Run Tests with JaCoCo
+    needs: security-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
+          
+      - name: Make Maven Wrapper executable
+        working-directory: ./SmokeGameBack
+        run: chmod +x mvnw
 
-      # Corregido: Uso de mvnw y permisos de ejecución
-      - name: Run Tests and JaCoCo Coverage
-        run: |
-          chmod +x mvnw
-          ./mvnw clean verify
+      - name: Build and Test with JaCoCo
+        working-directory: ./SmokeGameBack
+        run: ./mvnw clean verify
 
-      # Escaneo de seguridad con Snyk (IE3)
-      - name: Snyk Security Scan
-        uses: snyk/actions/maven@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      - name: Upload JaCoCo Report
+        uses: actions/upload-artifact@v4
         with:
-          args: --severity-threshold=high .
+          name: jacoco-report
+          path: SmokeGameBack/target/site/jacoco/
 
-      # Empaquetado del JAR para el artefacto
-      - name: Package Application
-        run: ./mvnw package -DskipTests
-
-      # Construcción de Imagen Docker (IE1)
+  docker-deploy:
+    name: Build & Deploy Docker
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
       - name: Build Docker Image
-        run: docker build -t smokegames-back .
-
-      # Orquestación con Docker Compose (IE5)
+        run: docker build -t smokegames-back ./SmokeGameBack
+        
       - name: Deploy with Docker Compose
         run: docker-compose up -d
-
-      # Subida de artefactos: Reporte de cobertura (IE2)
-      - name: Upload JaCoCo Report Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: reporte-cobertura-jacoco
-          path: target/site/jacoco/
-
-      # Subida de artefactos: Archivo JAR (IE4)
-      - name: Upload JAR Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-jar
-          path: target/*.jar
