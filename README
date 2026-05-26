@@ -1,0 +1,39 @@
+# Evaluación Parcial 2 - Ingeniería DevOps
+**Proyecto:** SmokeGames Backend  
+**Integrantes:** Alvaro Chirinos y Juan Elgueta
+
+## 1. Arquitectura de Contenedores y Orquestación
+Para este proyecto armamos un `Dockerfile` usando *Multi-stage build*. Esto nos sirvió harto para separar la parte donde se compila el código (con Maven) de la imagen final que lo ejecuta (con JRE). Al final, la imagen de producción queda súper liviana porque no arrastra cosas innecesarias.
+
+Para levantar todo junto usamos `docker-compose.yml`. Ahí tenemos dos servicios conectados en la misma red interna:
+* **Base de datos (MySQL 8):** Le pusimos un `healthcheck` para que Docker sepa exactamente cuándo la base de datos está lista para recibir conexiones.
+* **API (Spring Boot):** Le configuramos un `depends_on: service_healthy` apuntando a MySQL. Así evitamos el típico error de que la API intente arrancar antes de que la base de datos esté levantada.
+
+## 2. Parámetros de Escalabilidad
+En el mismo archivo de Docker Compose, le pusimos límites a los contenedores para que no se coman toda la RAM ni la CPU de la máquina host si algo sale mal.
+* **Límites máximos (limits):** 1GB de RAM y 1.0 CPU.
+* **Reserva (reservations):** 512MB de RAM y 0.5 CPU.
+
+## 3. Pipeline CI/CD y Trazabilidad 
+Armamos el flujo automático en GitHub Actions (`main.yml`) con tres pasos clave para asegurar que el código que se sube esté bueno:
+
+1. **Seguridad con Snyk:** Primero pasamos Snyk para buscar vulnerabilidades en las dependencias del `pom.xml`. Si encuentra algo grave, el pipeline se cae y no deja avanzar. El reporte de esto queda guardado como un artefacto `.json`.
+2. **Pruebas y Calidad:** Después corremos los tests de Spring Boot. Para esto usamos un perfil de prueba con una base de datos H2 en memoria, así no dependemos del MySQL real en la nube. Acá se genera el empaquetado `.jar` y el reporte de JaCoCo, que también quedan guardados en GitHub para revisarlos después.
+3. **Deploy con Docker:** Si todo lo anterior sale verde, el pipeline construye la imagen de Docker y hace el despliegue automático simulado con Docker Compose.
+
+
+## 4. Cómo probar la API (Swagger UI)
+Para revisar y probar los endpoints del backend de forma rápida, dejamos configurado **Swagger**. Una vez que los contenedores estén corriendo en local, se puede entrar directo desde el navegador a la siguiente ruta:
+
+* **Enlace:** `http://localhost:8080/swagger-ui/index.html`
+
+*Nota sobre Seguridad:* Como el proyecto tiene Spring Security activado, si la página llega a pedir credenciales para entrar, el usuario por defecto es `user` y la contraseña es la que se genera automáticamente en los logs del contenedor `api-service` cuando arranca.
+
+---
+
+## Reflexiones Individuales
+
+**Reflexión Alvaro Chirinos:**
+
+
+**Reflexión Juan Elgueta:**
