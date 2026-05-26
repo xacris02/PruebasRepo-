@@ -31,6 +31,22 @@ jobs:
     name: Run Tests with JaCoCo
     needs: security-scan
     runs-on: ubuntu-latest
+    
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_DATABASE: smoke_game_db
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -prootpassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17
@@ -41,7 +57,12 @@ jobs:
           cache: maven
       - name: Build and Test with JaCoCo
         working-directory: ./SmokeGameBack
-        run: mvn clean verify -Dspring.profiles.active=test -Dspring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+        env:
+          
+          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3307/smoke_game_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+          SPRING_DATASOURCE_USERNAME: root
+          SPRING_DATASOURCE_PASSWORD: rootpassword
+        run: mvn clean verify -Dspring.profiles.active=test
       - name: Upload JaCoCo Report
         uses: actions/upload-artifact@v4
         with:
