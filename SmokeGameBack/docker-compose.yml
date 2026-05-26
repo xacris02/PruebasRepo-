@@ -23,11 +23,9 @@ services:
       mysql-db:
         condition: service_healthy
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/smokegames_bd?useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/smokegames_bd?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root_password
-      
-    # IE3: Ajuste de parámetros de escalabilidad y seguridad (Requisito de la rúbrica)
     deploy:
       resources:
         limits:

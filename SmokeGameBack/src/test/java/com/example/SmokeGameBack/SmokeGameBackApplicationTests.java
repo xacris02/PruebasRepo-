@@ -10,13 +10,11 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("test")
 class SmokeGameBackApplicationTests {
 
-    // Mockeamos el repositorio para evitar errores en DataLoader durante el test
     @MockBean
     private ProductoRepository productoRepository;
 
     @Test
     void contextLoads() {
-        // Test de humo básico para verificar que el contexto levanta
     }
 
 }
