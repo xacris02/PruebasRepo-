@@ -19,7 +19,7 @@ Armamos el flujo automático en GitHub Actions (`main.yml`) con tres pasos clave
 
 1. **Seguridad con Snyk:** Primero pasamos Snyk para buscar vulnerabilidades en las dependencias del `pom.xml`. Si encuentra algo grave, el pipeline se cae y no deja avanzar. El reporte de esto queda guardado como un artefacto `.json`.
 2. **Pruebas y Calidad:** Después corremos los tests de Spring Boot. Para esto usamos un perfil de prueba con una base de datos H2 en memoria, así no dependemos del MySQL real en la nube. Acá se genera el empaquetado `.jar` y el reporte de JaCoCo, que también quedan guardados en GitHub para revisarlos después.
-3. **Deploy con Docker:** Si todo lo anterior sale verde, el pipeline construye la imagen de Docker y hace el despliegue automático simulado con Docker Compose.
+3. **Deploy con Docker:** Si todo lo anterior sale verde, el pipeline construye la imagen de Docker y hace el despliegue automático reflejado en las imagenes del word.
 
 
 ## 4. Cómo probar la API (Swagger UI)
@@ -37,3 +37,4 @@ Para revisar y probar los endpoints del backend de forma rápida, dejamos config
 Con esta evaluación pude visualizar lo que es trabajar en un entorno grupal aplicando conceptos de DevOps como creación de pipeline, seguridad e integrar actions(GitHub actions) para automatizar la revisión de cambios en un proyecto, además de crear imágenes para su correcto funcionamiento con Docker todo esto a partir del fundamento de la automatización. Esto la verdad me parece una maravilla ya que se podrá ocupar en un futuro para distintos escenarios donde el tiempo apremia y lo mejor es optimizarlo creando revisiones y acciones como bien dice su nombre automáticas, además de imágenes para que al momento de correr este mismo aplicativo evitemos un alto porcentaje de error.
 
 **Reflexión Juan Elgueta:**
+Lo que aprendi a travez de esta evaluacion fue las formas de trabajar de forma remota y automatica, como el uso de github runner el cual nos permite levantar el docker en nuestro docker lo cual nos muestra todo sin necesidad de abrir el codigo o ejecutar comandos en el visual, fue interesante trabajar de esta manera, igualmente el uso de jacoco y synk. 
