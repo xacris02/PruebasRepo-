@@ -15,7 +15,7 @@ services:
       retries: 10
 
   api-service:
-    build: .
+    image: smokegames-back:latest
     container_name: smokegames_backend
     ports:
       - "8080:8080"

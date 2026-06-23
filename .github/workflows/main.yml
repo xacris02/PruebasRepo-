@@ -78,8 +78,11 @@ jobs:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
+      - name: Build Docker Image
+        working-directory: ./SmokeGameBack
+        run: docker build -t smokegames-back:latest .
       - name: Deploy with Docker Compose
         working-directory: ./SmokeGameBack
         run: |
           docker compose down
-          docker compose up -d --build
+          docker compose up -d
