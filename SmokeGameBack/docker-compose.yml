@@ -34,3 +34,23 @@ services:
         reservations:
           memory: 512M
           cpus: "0.5"
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus_smokegames
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - api-service
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana_smokegames
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus

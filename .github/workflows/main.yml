@@ -16,13 +16,13 @@ jobs:
         run: rm -f SmokeGameBack/mvnw SmokeGameBack/mvnw.cmd
       - name: Snyk Security Scan
         uses: snyk/actions/maven@master
-        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --file=SmokeGameBack/pom.xml --severity-threshold=high --json-file-output=snyk_report.json
       - name: Upload Snyk Report Artifact
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: snyk-security-report
           path: snyk_report.json
@@ -32,7 +32,6 @@ jobs:
     needs: security-scan
     runs-on: ubuntu-latest
     
-
     services:
       mysql:
         image: mysql:8.0
@@ -58,7 +57,6 @@ jobs:
       - name: Build and Test with JaCoCo
         working-directory: ./SmokeGameBack
         env:
-          
           SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3307/smoke_game_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
           SPRING_DATASOURCE_USERNAME: root
           SPRING_DATASOURCE_PASSWORD: rootpassword
@@ -80,9 +78,8 @@ jobs:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
-      - name: Build Docker Image
-        working-directory: ./SmokeGameBack
-        run: docker build -t smokegames-back .
       - name: Deploy with Docker Compose
         working-directory: ./SmokeGameBack
-        run: docker compose up -d
+        run: |
+          docker compose down
+          docker compose up -d --build
