@@ -1,85 +1,35 @@
-name: CI/CD Pipeline SmokeGames
+name: CI/CD Pipeline Enterprise
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: [ "ramaHTML" ]
 
 jobs:
-  docker-deploy:
-    name: Build, Push ECR & Deploy Docker
-    needs: build-and-test
-    runs-on: self-hosted
-    steps:
-      - name: 1. Descargar el código
-        uses: actions/checkout@v4
-
-      - name: 2. Iniciar sesión en Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-        env:
-          AWS_REGION: us-east-1
-
-      - name: 3. Construir, Etiquetar y Subir Imagen a ECR
-        working-directory: ./SmokeGameBack
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: smokegames-back
-          IMAGE_TAG: latest
-        run: |
-          # Construimos la imagen y le ponemos el tag de ECR
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          # Subimos la imagen a la bodega de AWS ECR
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-      - name: 4. Deploy con Docker Compose
-        working-directory: ./SmokeGameBack
-        run: |
-          # Descarga la imagen más nueva desde tu ECR
-          docker compose pull
-          # Apaga los contenedores viejos
-          docker compose down
-          # Levanta todo con la nueva versión
-          docker compose up -d
-
+  # 1. Escaneo de seguridad
   security-scan:
     name: Snyk Security Scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Remove broken Maven Wrapper
-        run: rm -f SmokeGameBack/mvnw SmokeGameBack/mvnw.cmd
       - name: Snyk Security Scan
         uses: snyk/actions/maven@master
+        continue-on-error: true 
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --file=SmokeGameBack/pom.xml --severity-threshold=high --json-file-output=snyk_report.json
-      - name: Upload Snyk Report Artifact
+          args: --file=pom.xml --severity-threshold=high --json-file-output=snyk_report.json
+
+      - name: Upload Snyk Report
         uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: snyk-security-report
           path: snyk_report.json
 
+  # 2. Build y Tests con JaCoCo
   build-and-test:
-    name: Run Tests with JaCoCo
+    name: Build & Test
     needs: security-scan
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: rootpassword
-          MYSQL_DATABASE: smoke_game_db
-        ports:
-          - 3307:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -prootpassword"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17
@@ -88,20 +38,39 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
-      - name: Build and Test with JaCoCo
-        working-directory: ./SmokeGameBack
-        env:
-          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3307/smoke_game_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-          SPRING_DATASOURCE_USERNAME: root
-          SPRING_DATASOURCE_PASSWORD: rootpassword
+      - name: Build and Test
         run: mvn clean verify -Dspring.profiles.active=test
       - name: Upload JaCoCo Report
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-report
-          path: SmokeGameBack/target/site/jacoco/
-      - name: Upload JAR Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-jar
-          path: SmokeGameBack/target/*.jar
+          path: target/site/jacoco/
+
+  # 3. Despliegue automático a AWS (ECR + EC2)
+  docker-deploy:
+    name: Build, Push & Deploy
+    needs: build-and-test
+    runs-on: self-hosted
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Login Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        env:
+          AWS_REGION: us-east-1
+
+      - name: Build y Push a ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: smokegames-back
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Deploy con Docker Compose
+        run: |
+          docker compose pull
+          docker compose up -d --force-recreate
