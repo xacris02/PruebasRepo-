@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  web:
+    image: 262018804298.dkr.ecr.us-east-1.amazonaws.com/smokegames-back:latest
+    container_name: web_hola_mundo
+    ports:
+      - "8080:80"
+    restart: always
