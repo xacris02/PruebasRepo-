@@ -15,7 +15,7 @@ services:
       retries: 10
 
   api-service:
-    image: 262018804298.dkr.ecr.us-east-1.amazonaws.com/smokegamesback:latest 
+    image: 262018804298.dkr.ecr.us-east-1.amazonaws.com/smokegames-back:latest 
     container_name: smokegames_backend
     ports:
       - "8080:8080"
