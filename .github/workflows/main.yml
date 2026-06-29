@@ -2,10 +2,10 @@ name: CI/CD Pipeline Enterprise
 
 on:
   push:
-    branches: [ "ramaHTML" ]
+    branches: [ "rama-simple-vacia" ]
 
 jobs:
-  # 1. Escaneo de seguridad
+  # 1. Escaneo de seguridad (Requisito profe)
   security-scan:
     name: Snyk Security Scan
     runs-on: ubuntu-latest
@@ -17,6 +17,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
+          # Ahora buscamos en la raíz, donde pusiste el pom.xml
           args: --file=pom.xml --severity-threshold=high --json-file-output=snyk_report.json
 
       - name: Upload Snyk Report
@@ -25,7 +26,7 @@ jobs:
           name: snyk-security-report
           path: snyk_report.json
 
-  # 2. Build y Tests con JaCoCo
+  # 2. Build y Tests con JaCoCo (Requisito profe)
   build-and-test:
     name: Build & Test
     needs: security-scan
@@ -39,6 +40,7 @@ jobs:
           distribution: 'temurin'
           cache: maven
       - name: Build and Test
+        # Aquí eliminamos el working-directory porque ya no está en SmokeGameBack
         run: mvn clean verify -Dspring.profiles.active=test
       - name: Upload JaCoCo Report
         uses: actions/upload-artifact@v4
