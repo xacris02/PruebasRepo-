@@ -7,6 +7,42 @@ on:
     branches: [ "main" ]
 
 jobs:
+  docker-deploy:
+    name: Build, Push ECR & Deploy Docker
+    needs: build-and-test
+    runs-on: self-hosted
+    steps:
+      - name: 1. Descargar el código
+        uses: actions/checkout@v4
+
+      - name: 2. Iniciar sesión en Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        env:
+          AWS_REGION: us-east-1
+
+      - name: 3. Construir, Etiquetar y Subir Imagen a ECR
+        working-directory: ./SmokeGameBack
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: smokegames-back
+          IMAGE_TAG: latest
+        run: |
+          # Construimos la imagen y le ponemos el tag de ECR
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          # Subimos la imagen a la bodega de AWS ECR
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: 4. Deploy con Docker Compose
+        working-directory: ./SmokeGameBack
+        run: |
+          # Descarga la imagen más nueva desde tu ECR
+          docker compose pull
+          # Apaga los contenedores viejos
+          docker compose down
+          # Levanta todo con la nueva versión
+          docker compose up -d
+
   security-scan:
     name: Snyk Security Scan
     runs-on: ubuntu-latest
@@ -31,7 +67,6 @@ jobs:
     name: Run Tests with JaCoCo
     needs: security-scan
     runs-on: ubuntu-latest
-    
     services:
       mysql:
         image: mysql:8.0
@@ -45,7 +80,6 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
-
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17
@@ -71,18 +105,3 @@ jobs:
         with:
           name: app-jar
           path: SmokeGameBack/target/*.jar
-
-  docker-deploy:
-    name: Build & Deploy Docker
-    needs: build-and-test
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build Docker Image
-        working-directory: ./SmokeGameBack
-        run: docker build -t smokegames-back:latest .
-      - name: Deploy with Docker Compose
-        working-directory: ./SmokeGameBack
-        run: |
-          docker compose down
-          docker compose up -d
