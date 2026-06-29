@@ -2,7 +2,7 @@ name: CI/CD Pipeline Enterprise
 
 on:
   push:
-    branches: [ "rama-simple-vacia" ]
+    branches: [ "ramaHTML" ]
 
 jobs:
   # 1. Escaneo de seguridad (Requisito profe)
