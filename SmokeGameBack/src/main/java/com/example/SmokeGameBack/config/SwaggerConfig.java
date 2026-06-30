@@ -12,7 +12,7 @@ public class SwaggerConfig {
     OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("SmokeGames APIV7")
+                        .title("SmokeGames APIV8")
                         .version("1.0")
                         .description("Documentación del Backend de SmokeGames"));
     }
